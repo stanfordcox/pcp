@@ -220,7 +220,7 @@ bpf_load_modules(dict *cfg)
 
     pmNotifyErr(LOG_INFO, "loading modules");
 
-    iterator = dictGetIterator(cfg);
+    iterator = dictGetSafeIterator(cfg);
     while((entry = dictNext(iterator)) != NULL)
     {
         entry_key = dictGetKey(entry);

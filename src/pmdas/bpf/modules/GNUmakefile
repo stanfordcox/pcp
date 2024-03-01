@@ -70,6 +70,16 @@ APPS_BPF = \
 APPS_BPF_2 = \
 	netatop.bpf.c
 
+# non-libbpf header files.
+LOCAL_H = \
+	kepler.bpf.h \
+
+# non-libbpf *.bpf.c files.
+LOCAL_BPF = \
+	kepler.bpf.c \
+
+PMDABPF_MODULES += kepler.so
+
 default_pcp default:	$(PMDABPF_MODULES)
 
 include $(BUILDRULES)
@@ -79,6 +89,15 @@ install_pcp install:	default
 	$(INSTALL) -m 755 -d $(MODULETMP)
 	$(INSTALL) -m 644 -t $(MODULETMP) $(PMDABPF_MODULES) $(MODULEDIR)
 
+# non-libbpf header files.
+LOCAL_H = \
+	kepler.bpf.h \
+
+# non-libbpf *.bpf.c files.
+LOCAL_BPF = \
+	kepler.bpf.c \
+
+PMDABPF_MODULES += kepler.so
 
 # Use the clang pipeline to emit LLVM to LLD and emit BPF straight to an ELF .o.
 # The GCC pipeline has parts of this but not completely, and in any case, likely
@@ -104,7 +123,7 @@ $(APPS_BPF):
 vmlinux.h: $(PMDABPF_VMLINUXH)
 	$(LN_S) -f $< $@
 
-%.bpf.o: %.bpf.c vmlinux.h $(APPS_H) $(APPS_H_2) $(APPS_BPF) $(APPS_BPF_2)
+%.bpf.o: %.bpf.c vmlinux.h $(APPS_H) $(APPS_H_2) $(APPS_BPF) $(APPS_BPF_2) $(LOCAL_H) $(LOCAL_BPF)
 	$(CLANG) -Wall -g -O2 -target bpf -D__TARGET_ARCH_$(PMDABPF_ARCH) \
 		-I. -c $< -o $@
 	$(LLVM_STRIP) -g $@
@@ -113,7 +132,7 @@ vmlinux.h: $(PMDABPF_VMLINUXH)
 	$(BPFTOOL) gen skeleton $< > $@
 
 %.o: %.c
-%.o: %.c %.skel.h $(HELPERS_H) $(APPS_H)
+%.o: %.c %.skel.h $(HELPERS_H) $(APPS_H) $(LOCAL_H)
 	$(CC) -c $(CFLAGS) $(CPPFLAGS) $< -o $@
 
 %_helpers.o: %_helpers.c

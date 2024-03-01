@@ -113,6 +113,7 @@ char *all_modules[] = {
     "execsnoop",
     "exitsnoop"
     "fsslower",
+    "kepler",
     "mountsnoop",
     "netatop",
     "oomkill",
