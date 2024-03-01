@@ -25,8 +25,8 @@ limitations under the License.
 #include "kepler.bpf.h"
 
 // processes and pid time
-// BPF_HASH(processes, u32, process_metrics_t);
-BPF_PERF_ARRAY(processes);
+BPF_HASH(processes, u64, process_metrics_t);
+// BPF_PERF_ARRAY(processes);
 BPF_HASH(pid_time, u32, u64);
 
 // perf counters
@@ -211,7 +211,8 @@ static inline u64 get_on_cpu_avg_freq(u32 *cpu_id, u64 on_cpu_cycles_delta, u64 
 SEC("tracepoint/sched/sched_switch")
 int kepler_trace(struct sched_switch_args *ctx)
 {
-    /*    u32 next_pid = ctx->next_pid; // the new pid that is to be scheduled
+    int ret = 0;
+    u32 next_pid = ctx->next_pid; // the new pid that is to be scheduled
 
     // only do sampling if sample rate is set
     if (sample_rate != 0)
@@ -258,13 +259,14 @@ int kepler_trace(struct sched_switch_args *ctx)
         // bpf_probe_read(&new_process.comm, sizeof(new_process.comm), (void *)ctx->next_comm);
         bpf_get_current_comm(&new_process.comm, sizeof(new_process.comm));
         bpf_map_update_elem(&processes, &cur_pid, &new_process, BPF_NOEXIST);
-    }
-    return 0;*/
+	}
+    return ret;
 }
 
 SEC("tracepoint/irq/softirq_entry")
 int kepler_irq_trace(struct trace_event_raw_softirq *ctx)
 {
+    int ret = 0;
     u32 cur_pid = bpf_get_current_pid_tgid();
     struct process_metrics_t *process_metrics;
     process_metrics = bpf_map_lookup_elem(&processes, &cur_pid);
@@ -274,13 +276,14 @@ int kepler_irq_trace(struct trace_event_raw_softirq *ctx)
             process_metrics->vec_nr[ctx->vec] ++;
         }
     }
-    return 0;
+    return ret;
 }
 
 // count read page cache
 SEC("kprobe/mark_page_accessed")
 int kprobe__mark_page_accessed(struct pt_regs *ctx)
 {
+    int ret = 0;
     u32 cur_pid = bpf_get_current_pid_tgid();
     struct process_metrics_t *process_metrics;
     process_metrics = bpf_map_lookup_elem(&processes, &cur_pid);
@@ -288,21 +291,22 @@ int kprobe__mark_page_accessed(struct pt_regs *ctx)
     {
         process_metrics->page_cache_hit ++;
     }
-    return 0;
+    return ret;
 }
 
 // count write page cache
 SEC("kprobe/set_page_dirty")
 int kprobe__set_page_dirty(struct pt_regs *ctx)
 {
-    u32 cur_pid = bpf_get_current_pid_tgid();
+    int ret = 0;
+    u64 cur_pid = bpf_get_current_pid_tgid() >> 32;
     struct process_metrics_t *process_metrics;
     process_metrics = bpf_map_lookup_elem(&processes, &cur_pid);
     if (process_metrics)
     {
         process_metrics->page_cache_hit ++;
     }
-    return 0;
+    return ret;
 }
 
 char _license[] SEC("license") = "GPL";

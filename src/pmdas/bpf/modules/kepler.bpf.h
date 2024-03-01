@@ -69,10 +69,10 @@ typedef __u16 u16;
 
 #define BPF_HASH(_name, _key_type, _value_type) \
     struct {                                    \
-        __uint(type, BPF_MAP_TYPE_HASH);        \
+        __uint(type, BPF_MAP_TYPE_PERCPU_HASH);        \
+        __uint(max_entries, MAP_SIZE);          \
         __type(key, _key_type);                 \
         __type(value, _value_type);             \
-        __uint(max_entries, MAP_SIZE);          \
     } _name SEC(".maps");
 
 #define BPF_ARRAY(_name, _leaf_type) \
